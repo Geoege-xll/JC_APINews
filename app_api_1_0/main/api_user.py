@@ -4,8 +4,7 @@ from libs.api_extended import generate_token, AlchemyEncoder, kResponseJosn, tok
     classTodic
 
 from app_api_1_0 import db
-from app_api_1_0.models import UserModel, UserDetailModel
-from app_api_1_0.models import CertifiedModel
+from app_api_1_0.models import UserModel, UserDetailModel, AttebtonModel, CertifiedModel
 from app_api_1_0.main.user_help import kCheckUser
 
 from . import main
@@ -65,8 +64,6 @@ def login():
         return kResponseJosn(code=200,
                              codeString="登录成功",
                              obj=returndic)
-
-
 
 
 @main.route('/api/1.0/registered', methods=['POST'])
@@ -130,64 +127,63 @@ def addUserDetail():
     if UserId is None or Token is None:
         return kResponseJosn(code='500', codeString="缺少参数")
 
-    if kCheckUser(userId=UserId, token=Token):
+    if not kCheckUser(userId=UserId, token=Token):
+        return kResponseJosn(code="900", codeString="token 无效！")
 
-        find_my_user = db.session.query(UserDetailModel).filter_by(UserId=UserId).first()  # 查询第一个
+    find_my_user = db.session.query(UserDetailModel).filter_by(UserId=UserId).first()  # 查询第一个
 
-        if find_my_user is None:
+    if find_my_user is None:
 
-            newUserd = UserDetailModel(kUserId=UserId)
-            newUserd.Sex = Sex
-            newUserd.Adress = Adresss
-            newUserd.PhoneNum = PhoneNum
-            newUserd.State = 0
-            newUserd.CompanyName = CompanyName
-            newUserd.Name = Name
-            newUserd.Birthday = Birthday
-            newUserd.Education = Education
-            newUserd.Age = Age
+        newUserd = UserDetailModel(kUserId=UserId)
+        newUserd.Sex = Sex
+        newUserd.Adress = Adresss
+        newUserd.PhoneNum = PhoneNum
+        newUserd.State = 0
+        newUserd.CompanyName = CompanyName
+        newUserd.Name = Name
+        newUserd.Birthday = Birthday
+        newUserd.Education = Education
+        newUserd.Age = Age
 
-            # newUserd.UserType = UserType
-            # newUserd.IDNum = IDNum
-            # newUserd.CompanyId = CompanyId
-            # newUserd.CompanyUserType = CompanyUserType
+        # newUserd.UserType = UserType
+        # newUserd.IDNum = IDNum
+        # newUserd.CompanyId = CompanyId
+        # newUserd.CompanyUserType = CompanyUserType
 
-            db.session.add(newUserd)
-            try:
-                db.session.commit()
-            except:
-                db.session.rollback()
-            db.session.close()
-            return kResponseJosn(code=200, codeString="完善信息成功！")
-        else:
+        db.session.add(newUserd)
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+        db.session.close()
+        return kResponseJosn(code=200, codeString="完善信息成功！")
+    else:
 
-            find_my_user.PhoneNum = PhoneNum
-            find_my_user.State = 0
-            find_my_user.CompanyName = CompanyName
-            find_my_user.Name = Name
-            find_my_user.Birthday = Birthday
-            find_my_user.Sex = Sex
-            find_my_user.Adress = Adresss
-            find_my_user.Education = Education
-            find_my_user.Age = Age
+        find_my_user.PhoneNum = PhoneNum
+        find_my_user.State = 0
+        find_my_user.CompanyName = CompanyName
+        find_my_user.Name = Name
+        find_my_user.Birthday = Birthday
+        find_my_user.Sex = Sex
+        find_my_user.Adress = Adresss
+        find_my_user.Education = Education
+        find_my_user.Age = Age
 
-            # find_my_user.UserType = UserType
-            # find_my_user.IDNum = IDNum
-            # find_my_user.CompanyId = CompanyId
-            # find_my_user.CompanyUserType = CompanyUserType
+        # find_my_user.UserType = UserType
+        # find_my_user.IDNum = IDNum
+        # find_my_user.CompanyId = CompanyId
+        # find_my_user.CompanyUserType = CompanyUserType
 
-            db.session.add(find_my_user)
-            # db.session.commit()
+        db.session.add(find_my_user)
+        # db.session.commit()
 
-            try:
-                db.session.commit()
-            except:
-                db.session.rollback()
-            db.session.close()
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+        db.session.close()
 
-            return kResponseJosn(code=200, codeString="修改信息成功！")
-
-    return kResponseJosn(code="900", codeString="token 无效！")
+        return kResponseJosn(code=200, codeString="修改信息成功！")
 
 
 @main.route('/api/1.0/getUserDetail', methods=['POST'])
@@ -199,20 +195,20 @@ def getUserDetail():
     token = request.json["Token"]
     userid = request.json["UserId"]
 
-    if kCheckUser(userId=userid, token=token):
+    if not kCheckUser(userId=userid, token=token):
+        return kResponseJosn(code=500)
+    find_my_user = db.session.query(UserDetailModel).filter_by(UserId=userid).first()  # 查询第一个
+    if find_my_user:
 
-        find_my_user = db.session.query(UserDetailModel).filter_by(UserId=userid).first()  # 查询第一个
-        if find_my_user:
-
-            return kResponseJosn(code=200, codeString="用户信息查询成功！", obj=classTodic(find_my_user))
-        else:
-            return kResponseJosn(code=400, codeString="该用户没有用户信息！")
+        return kResponseJosn(code=200, codeString="用户信息查询成功！", obj=classTodic(find_my_user))
+    else:
+        return kResponseJosn(code=400, codeString="该用户没有用户信息！")
 
 
 @main.route('/api/1.0/certifiedUser', methods=['POST'])
 def certifiedUser():
     """
-    实名认证企业高管信息信息
+    高管或者员工进行实名认证
     :return:
     """
 
@@ -221,54 +217,51 @@ def certifiedUser():
     BossId = request.json.get('BossId')  # 上级领导的id
     UserType = request.json.get('UserType')
 
-    if kCheckUser(userId=UserId, token=Token):
-        #
-        find_boss_user = db.session.query(UserDetailModel).filter_by(UserId=BossId).first()  # 查询上级的状态是否正常
+    if not kCheckUser(userId=UserId, token=Token):
+         return kResponseJosn(code="900", codeString="token 无效！")
 
-        print(find_boss_user.CompanyUserType)
-        print(find_boss_user.State)
+    find_boss_user = db.session.query(UserDetailModel).filter_by(UserId=BossId).first()  # 查询上级的状态是否正常
+    print(find_boss_user.CompanyUserType)
+    print(find_boss_user.State)
 
-        if int(find_boss_user.CompanyUserType) == 1 and int(find_boss_user.State) == 1:
+    if int(find_boss_user.CompanyUserType) == 1 and int(find_boss_user.State) == 1:
+        '''
+        将请求认证人的信息状态 临时存起来
+        '''
+        find_my_user = db.session.query(UserDetailModel).filter_by(UserId=UserId).first()
+        find_my_user.UserType = UserType
+        find_my_user.CompanyUserType = UserType
+        find_my_user.State = 2
+        db.session.add(find_my_user)
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+        '''
+        插入一条验证消息
+        '''
+        install_certif = CertifiedModel()
+        install_certif.SendTime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        install_certif.Title = "您有一条请求认证消息！"
+        install_certif.CertifiedId = singlerandom(12)
+        install_certif.CertifiedUserId = UserId
+        install_certif.ManagementId = BossId
+        install_certif.State = 0
+        install_certif.CertifiedType = UserType
+        db.session.add(install_certif)
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
 
-            '''
-            将请求认证人的信息状态 临时存起来
-            '''
-            find_my_user = db.session.query(UserDetailModel).filter_by(UserId=UserId).first()
-            find_my_user.UserType = UserType
-            find_my_user.CompanyUserType = UserType
-            find_my_user.State = 2
-            db.session.add(find_my_user)
-            try:
-                db.session.commit()
-            except:
-                db.session.rollback()
-            '''
-            插入一条验证消息
-            '''
-            install_certif = CertifiedModel()
-            install_certif.SendTime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
-            install_certif.Title = "您有一条请求认证消息！"
-            install_certif.CertifiedId = singlerandom(12)
-            install_certif.CertifiedUserId = UserId
-            install_certif.ManagementId = BossId
-            install_certif.State = 0
-            install_certif.CertifiedType = UserType
-            db.session.add(install_certif)
-            try:
-                db.session.commit()
-            except:
-                db.session.rollback()
+        db.session.close()
+        '''
+        这还得做个推送处理
+        '''
 
-            db.session.close()
-            '''
-            这还得做个推送处理
-            '''
-
-            return kResponseJosn(code=200, codeString="申请认证成功！等待领导确定")
-        else:
-            return kResponseJosn(codeString="无效申请", code=400)
-
-    return kResponseJosn(code="900", codeString="token 无效！")
+        return kResponseJosn(code=200, codeString="申请认证成功！等待领导确定")
+    else:
+        return kResponseJosn(codeString="无效申请", code=400)
 
 
 @main.route('/api/1.0/fixCertifiedUser', methods=['POST'])
@@ -282,43 +275,129 @@ def fixCertifiedUser():
     UserId = request.json.get('UserId')
 
     if kCheckUser(userId=UserId, token=Token):
+        return kResponseJosn(code=500, codeString="token 无效！")
 
-        # 找到该条验证消息
-        find_cer = db.session.query(CertifiedModel).filter_by(CertifiedId=CertifiedId).first()
-        # 验证登录用户和 该条验证消息 审核人的是否一致
-        if find_cer.State != 0:
-            return kResponseJosn(code=400, codeString="该条认证信息有问题！")
+    # 找到该条验证消息
+    find_cer = db.session.query(CertifiedModel).filter_by(CertifiedId=CertifiedId).first()
+    # 验证登录用户和 该条验证消息 审核人的是否一致
+    if find_cer.State != 0:
+         return kResponseJosn(code=400, codeString="该条认证信息有问题！")
 
-        if int(UserId) == find_cer.ManagementId:
-            find_User = db.session.query(UserDetailModel).filter_by(UserId=UserId).first()
-            # 看看确定验证申请人的权限是否问题
-            if find_User.CompanyUserType < find_cer.CertifiedUserId:
-                # 更改申请人的认证状态
-                find_cerUser = db.session.query(UserModel).filter_by(UserId=find_cer.CertifiedUserId).first()
-                find_cerUser.State = 1
-                db.session.add(find_cerUser)
+    if int(UserId) != find_cer.ManagementId:
+        return kResponseJosn(code=400, codeString="审核权限不正确")
 
-                find_cer.State = 1
-                db.session.add(find_cer)
-                try:
-                    db.session.commit()
-                except:
-                    db.session.rollback()
+    find_User = db.session.query(UserDetailModel).filter_by(UserId=UserId).first()
+    # 看看确定验证申请人的权限是否问题
+    if find_User.CompanyUserType < find_cer.CertifiedUserId:
+        # 更改申请人的认证状态
+        find_cerUser = db.session.query(UserModel).filter_by(UserId=find_cer.CertifiedUserId).first()
+        find_cerUser.State = 1
+        db.session.add(find_cerUser)
 
-                db.session.close()
+        find_cer.State = 1
+        db.session.add(find_cer)
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
 
-                '''
-                还需要做个推送处理
-                '''
-                return kResponseJosn(codeString='认证成功', code=200)
+        db.session.close()
+
+        '''
+        还需要做个推送处理
+        '''
+        return kResponseJosn(code=200, codeString="认证成功")
 
 
-            else:
-                return kResponseJosn(code=400, codeString="审核权限不正确")
-        else:
-            return kResponseJosn(code=400, codeString='审核人身份有问题！')
-    else:
-        return kResponseJosn(code=500)
+@main.route('/api/1.0/addAttention', methods=['POST'])
+def addAttention():
+    """
+    添加关注
+    :return:
+    """
+
+    token = request.json["Token"]
+    userId = request.json["UserId"]
+    b_FollowersUserId = request.json["FollowersUserId"]
+    if userId is None and b_FollowersUserId is None:
+        return kResponseJosn(code=500, codeString="缺少参数！")
+
+    if not kCheckUser(userId=userId, token=token):
+        return kResponseJosn(code=400, codeString="token 无效")
+
+    if userId == b_FollowersUserId:
+        return kResponseJosn(code=500, codeString="自己不能关注自己！")
+
+    attModel = AttebtonModel()
+    attModel.FollowersUserId = userId
+    attModel.B_FollowersUserId = b_FollowersUserId
+    attModel.FollowersTime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+
+    db.session.add(attModel)
+    try:
+        db.session.commit()
+    except:
+        db.session.rollback()
+    db.session.close()
+    return kResponseJosn(code=200, codeString="关注成功！")
+
+
+@main.route('/api/1.0/deleteAttention', methods=['POST'])
+def deleteAttention():
+    """
+    取消关注
+    :return:
+    """
+
+    token = request.json["Token"]
+    userId = request.json["UserId"]
+    b_FollowersUserId = request.json["FollowersUserId"]
+
+    if userId is None and b_FollowersUserId is None:
+        return kResponseJosn(code=500, codeString="缺少参数！")
+
+    if not kCheckUser(userId=userId, token=token):
+        return kResponseJosn(code=400, codeString="token 无效")
+
+    find_attebon = db.session.query(AttebtonModel).filter_by(FollowersUserId=userId, B_FollowersUserId=b_FollowersUserId).first()
+    if not find_attebon:
+        return kResponseJosn(code=500, codeString="查询失败！")
+
+    db.session.delete(find_attebon)
+    try:
+        db.session.commit()
+    except:
+        db.session.rollback()
+    db.session.close()
+    return kResponseJosn(code=200, codeString="取消关注成功！")
+
+
+@main.route('/api/1.0/getMyAttention', methods=['POST'])
+def getMyAttention():
+    """
+    获取我的关注列表
+    :return:
+    """
+    token = request.json["Token"]
+    userId = request.json["UserId"]
+    page = request.json.get('page')
+    pageSize = request.json.get('pageSize')
+
+    if not kCheckUser(userId=userId, token=token):
+        return kResponseJosn(code=500, codeString="token 无效！")
+
+    pagination = AttebtonModel.query \
+        .filter_by(FollowersUserId=userId) \
+        .order_by(AttebtonModel.ReleaseTime.desc()) \
+        .paginate(int(page), per_page=int(pageSize), error_out=False)
+
+    posts = pagination.items
+    tList = []
+    for t in posts:
+        obj = classTodic(t)
+        tList.append(obj)
+
+    return kResponseJosn(code=200, codeString="查询成功！", obj=tList)
 
 
 class APIUser:

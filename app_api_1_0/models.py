@@ -4,6 +4,8 @@ from app_api_1_0 import db
 # https://blog.csdn.net/hyman_c/article/details/54382161  分页处理
 # https://blog.csdn.net/guoqianqian5812/article/details/78860572  分页处理
 
+
+# 认证类模型
 class CertifiedModel(db.Model):
     __tablename__ = 'Certified'  # 表名
 
@@ -17,7 +19,7 @@ class CertifiedModel(db.Model):
     CertifiedTime = db.Column(db.String)
     CertifiedType = db.Column(db.Integer)
 
-
+# 文章类模型
 class ContentModel(db.Model):
     __tablename__ = 'Content'  # 表名
 
@@ -44,7 +46,7 @@ class ContentModel(db.Model):
         }
         return jsonDic
 
-
+# 用户
 class UserModel(db.Model):
     # 表名
     __tablename__ = 'User'  # 表名
@@ -87,8 +89,9 @@ class UserModel(db.Model):
         }
         return json_student
 
-
+# 用户详情
 class UserDetailModel(db.Model):
+
     __tablename__ = 'UserDetail'  # 表名
 
     UserId = db.Column(db.Integer, primary_key=True)
@@ -110,3 +113,13 @@ class UserDetailModel(db.Model):
 
     def __init__(self, kUserId):
         self.UserId = kUserId
+
+# 关注表
+class AttebtonModel(db.Model):
+
+    __tablename__ = "Attention"
+
+    Id = db.Column(db.Integer, primary_key=True)
+    FollowersUserId = db.Column(db.String)
+    B_FollowersUserId = db.Column(db.String)
+    FollowersTime = db.Column(db.String)

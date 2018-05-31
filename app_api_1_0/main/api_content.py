@@ -25,26 +25,29 @@ def writeContent():
     qContentId = singlerandom(16)
     qReleaseTime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
-    if kCheckUser(userId=qReleasePeopleId, token=Token):
-
-        installContent = ContentModel()
-        installContent.ContentId = qContentId
-        installContent.ReleaseTime = qReleaseTime
-        installContent.ContentTitle = qContentTitle
-        installContent.ReleasePeopleId = qReleasePeopleId
-        installContent.ContentHtml = qContentBox
-        installContent.ContentString = qContentStr
-
-        db.session.add(installContent)
-
-        db.session.commit()
-        db.session.rollback()
-        db.session.close()
-
-        return kResponseJosn(code=200, codeString='文章发布成功！')
-
-    else:
+    if not kCheckUser(userId=qReleasePeopleId, token=Token):
         return kResponseJosn(code=500, codeString="token 无效")
+
+    find_User = db.session.query(UserDetailModel).filter_by(UserId=qReleasePeopleId).first()
+
+    if find_User.UserType != 1:
+        kResponseJosn(code=500, codeString="您的权限不是供应商身份不能发布文章！")
+
+    installContent = ContentModel()
+    installContent.ContentId = qContentId
+    installContent.ReleaseTime = qReleaseTime
+    installContent.ContentTitle = qContentTitle
+    installContent.ReleasePeopleId = qReleasePeopleId
+    installContent.ContentHtml = qContentBox
+    installContent.ContentString = qContentStr
+
+    db.session.add(installContent)
+
+    db.session.commit()
+    db.session.rollback()
+    db.session.close()
+
+    return kResponseJosn(code=200, codeString='文章发布成功！')
 
 
 @main.route('/api/1.0/getContList', methods=['POST'])
@@ -130,18 +133,22 @@ def getUserContList():
     userId = request.json.get('UserId')
 
     if kCheckUser(userId=userId, token=token):
+        return kResponseJosn(code=400, codeString="token 无效")
 
-        pagination = ContentModel.query \
-            .filter_by(ReleasePeopleId=userId) \
-            .order_by(ContentModel.ReleaseTime.desc()) \
-            .paginate(int(page), per_page=int(pageSize), error_out=False)
+    """
+     filter_by 查找
+     order_by 排序
+     paginate  分页
+    """
+    pagination = ContentModel.query \
+        .filter_by(ReleasePeopleId=userId) \
+        .order_by(ContentModel.ReleaseTime.desc()) \
+        .paginate(int(page), per_page=int(pageSize), error_out=False)
 
-        posts = pagination.items
-        tList = []
-        for t in posts:
-            obj = classTodic(t)
-            tList.append(obj)
+    posts = pagination.items
+    tList = []
+    for t in posts:
+        obj = classTodic(t)
+        tList.append(obj)
 
-        return kResponseJosn(code=200, codeString="查询成功！", obj=tList)
-
-    return kResponseJosn(code=400, codeString="token 无效")
+    return kResponseJosn(code=200, codeString="查询成功！", obj=tList)
