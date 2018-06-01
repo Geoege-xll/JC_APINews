@@ -19,6 +19,7 @@ class CertifiedModel(db.Model):
     CertifiedTime = db.Column(db.String)
     CertifiedType = db.Column(db.Integer)
 
+
 # 文章类模型
 class ContentModel(db.Model):
     __tablename__ = 'Content'  # 表名
@@ -45,6 +46,7 @@ class ContentModel(db.Model):
 
         }
         return jsonDic
+
 
 # 用户
 class UserModel(db.Model):
@@ -89,9 +91,9 @@ class UserModel(db.Model):
         }
         return json_student
 
+
 # 用户详情
 class UserDetailModel(db.Model):
-
     __tablename__ = 'UserDetail'  # 表名
 
     UserId = db.Column(db.Integer, primary_key=True)
@@ -110,16 +112,18 @@ class UserDetailModel(db.Model):
     Education = db.Column(db.String)
     UserImageUrl = db.Column(db.String)
 
-
     def __init__(self, kUserId):
         self.UserId = kUserId
 
+
 # 关注表
 class AttebtonModel(db.Model):
-
     __tablename__ = "Attention"
 
-    Id = db.Column(db.Integer, primary_key=True)
+    Id = db.Column(db.Integer, default=0, primary_key=True)
     FollowersUserId = db.Column(db.String)
     B_FollowersUserId = db.Column(db.String)
     FollowersTime = db.Column(db.String)
+
+    def __init__(self):
+        pass

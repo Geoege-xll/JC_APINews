@@ -1,6 +1,6 @@
 from app_api_1_0.main.user_help import kCheckUser
 from app_api_1_0 import db
-from app_api_1_0.models import ContentModel, UserDetailModel
+from app_api_1_0.models import ContentModel, UserDetailModel, AttebtonModel
 from libs.api_extended import singlerandom, kResponseJosn, classTodic
 
 from flask import request
@@ -42,9 +42,11 @@ def writeContent():
     installContent.ContentString = qContentStr
 
     db.session.add(installContent)
-
-    db.session.commit()
-    db.session.rollback()
+    try:
+        db.session.commit()
+    except:
+        pass
+        # db.session.rollback()
     db.session.close()
 
     return kResponseJosn(code=200, codeString='文章发布成功！')
@@ -113,26 +115,33 @@ def getContentDetail():
     if not find_my_user:
         return kResponseJosn(code=400, codeString="查询失败！")
 
+    find_attebon = db.session.query(AttebtonModel).filter_by(FollowersUserId=userid, B_FollowersUserId=find_my_Conten.ReleasePeopleId).first()
+
     dic = classTodic(find_my_Conten)
     dic["UserHeader"] = find_my_user.UserImageUrl
     dic["CompanyName"] = find_my_user.CompanyName
     dic["Name"] = find_my_user.Name
+    if find_attebon:
+        dic["IsAttebon"] = "1"
+    else:
+        dic["IsAttebon"] = "0"
+
     return kResponseJosn(code=200, codeString="查询成功！", obj=dic)
 
 
-@main.route('/api/1.0/getUserContList', methods=['POST'])
-def getUserContList():
+@main.route('/api/1.0/getMyContList', methods=['POST'])
+def getMyContList():
     """
     获取用户的发布的文章
     :return:
     """
 
-    page = request.json.get('page')
-    pageSize = request.json.get('pageSize')
+    page = request.json.get('Page')
+    pageSize = request.json.get('PageSize')
     token = request.json.get('Token')
     userId = request.json.get('UserId')
 
-    if kCheckUser(userId=userId, token=token):
+    if not kCheckUser(userId=userId, token=token):
         return kResponseJosn(code=400, codeString="token 无效")
 
     """
@@ -148,7 +157,41 @@ def getUserContList():
     posts = pagination.items
     tList = []
     for t in posts:
-        obj = classTodic(t)
+        # obj = classTodic(t)
+        obj = {
+            "ContentTitle": t.ContentTitle,
+            "ReleaseTime": t.ReleaseTime,
+            "ContentId": t.ContentId,
+            "Content": t.ContentString,
+        }
+
         tList.append(obj)
 
     return kResponseJosn(code=200, codeString="查询成功！", obj=tList)
+
+
+@main.route('/api/1.0/deleteContent', methods=['POST'])
+def deleteContet():
+    """
+    删除文章
+    :return:
+    """
+
+    token = request.json.get('Token')
+    userId = request.json.get('UserId')
+    contentId = request.json["ContentId"]
+    if not kCheckUser(userId=userId, token=token):
+        return kResponseJosn(code=400, codeString="token 无效")
+
+    find_my_Conten = db.session.query(ContentModel).filter_by(ContentId=contentId).first()
+    if not find_my_Conten:
+        return kResponseJosn(code=400, codeString="查询失败！")
+
+    db.session.delete(find_my_Conten)
+    try:
+        db.session.commit()
+    except:
+        pass
+    db.session.close()
+    return kResponseJosn(code=200, codeString="删除文章成功！")
+

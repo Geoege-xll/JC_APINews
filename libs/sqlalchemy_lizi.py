@@ -56,7 +56,7 @@ mapper(User2, userTable)
 
 def installData():
 
-    newUser = User(newName="hahahhapython",newPass="1234556")
+    newUser = User(newName="hahahhapython", newPass="1234556")
     # newUser.name = "nnnn"
     # newUser.password = "gdsgsdgdsgs"
 # 将对象添加到session

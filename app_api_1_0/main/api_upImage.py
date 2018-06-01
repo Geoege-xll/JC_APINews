@@ -20,12 +20,12 @@ def allowed_file(filename):
 
 
 @main.route('/api/1.0/upContentImage', methods=['POST'])
-def up():
+def upContentImage():
     """
     上传发布文章的图片
     :return:
     """
-    file_dir = os.path.join(basedir, "app_api_1_0/static")  # 拼接成合法文件夹地址
+    file_dir = os.path.join(basedir, "app_api_1_0/static/Content")  # 拼接成合法文件夹地址
 
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)  # 文件夹不存在就创建
@@ -43,7 +43,7 @@ def up():
         new_filename = "Content" + str(unix_time) + '.' + ext  # 修改文件名
 
         file.save(os.path.join(file_dir, new_filename))  # 保存文件到upload目录
-        img_url = url_for("static", _external=True, filename=new_filename)
+        img_url = url_for("static", _external=True, filename="Content"+new_filename)
 
         print("----文件地址=", img_url)
         return kResponseJosn(code=200, codeString="上传成功", obj=img_url)
@@ -52,12 +52,12 @@ def up():
 
 
 @main.route('/api/1.0/upUserImage', methods=['POST'])
-def upImage():
+def upUserImage():
     """
     上传用户头像
     :return:
     """
-    file_dir = os.path.join(basedir, "app_api_1_0/static")  # 拼接成合法文件夹地址
+    file_dir = os.path.join(basedir, "app_api_1_0/static/User")  # 拼接成合法文件夹地址
 
     if not os.path.exists(file_dir):
         os.makedirs(file_dir)  # 文件夹不存在就创建
@@ -72,9 +72,15 @@ def upImage():
     if 'file' not in request.files:
         return kResponseJosn(code=500, codeString="No file part")
 
-    find_my_user = db.session.query(UserDetailModel).filter_by(UserId=userid).first()  # 查询第一个
+    find_my_user = db.session.query(UserDetailModel).filter_by(UserId=userid).first()
     if not find_my_user:
-         return kResponseJosn(code=500, codeString="no find user")
+        newUserd = UserDetailModel(kUserId=userid)
+        db.session.add(newUserd)
+        try:
+            db.session.commit()
+        except:
+            pass
+        db.session.close()
 
     file = request.files['file']
     # 浏览器也会提交没有文件名的空部分 如果用户没有选择文件
@@ -83,12 +89,13 @@ def upImage():
         filename = secure_filename(file.filename)
 
         ext = filename.rsplit('.', 1)[1]  # 获取文件后缀
-        unix_time = int(time.time())
-        new_filename = userid + str(unix_time) + '.' + ext  # 修改文件名
+        # unix_time = int(time.time())
+        # new_filename = userid + str(unix_time) + '.' + ext  # 修改文件名
+        new_filename = userid + '.' + ext  # 修改文件名
 
         file.save(os.path.join(file_dir, new_filename))  # 保存文件到upload目录
         # 返回服务器的图片地址
-        img_url = url_for("static", _external=True, filename=new_filename)
+        img_url = url_for("static", _external=True, filename="User/"+new_filename)
 
         print("----文件地址=", img_url)
         find_my_user.UserImageUrl = img_url
@@ -96,7 +103,7 @@ def upImage():
         try:
             db.session.commit()
         except:
-            db.session.rollback()
+            pass
         db.session.close()
 
         return kResponseJosn(code=200, codeString="上传成功！")

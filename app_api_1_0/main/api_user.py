@@ -57,7 +57,8 @@ def login():
         try:
             db.session.commit()
         except:
-            db.session.rollback()
+            pass
+            # db.session.rollback()
         db.session.close()
 
         # return kResponseJosn(code=200, codeString="登录成功", obj= json.dumps(my_user, cls=AlchemyEncoder))
@@ -92,7 +93,8 @@ def registered():
             try:
                 db.session.commit()  # 提交到数据库
             except:
-                db.session.rollback()  # 回滚
+                pass
+                # db.session.rollback()  # 回滚
             db.session.close()
             return kResponseJosn(code=200, codeString="注册成功！", obj={"Token": returnTorn})
 
@@ -154,7 +156,8 @@ def addUserDetail():
         try:
             db.session.commit()
         except:
-            db.session.rollback()
+            pass
+            # db.session.rollback()
         db.session.close()
         return kResponseJosn(code=200, codeString="完善信息成功！")
     else:
@@ -180,7 +183,8 @@ def addUserDetail():
         try:
             db.session.commit()
         except:
-            db.session.rollback()
+            pass
+            # db.session.rollback()
         db.session.close()
 
         return kResponseJosn(code=200, codeString="修改信息成功！")
@@ -236,7 +240,8 @@ def certifiedUser():
         try:
             db.session.commit()
         except:
-            db.session.rollback()
+            pass
+            # db.session.rollback()
         '''
         插入一条验证消息
         '''
@@ -299,7 +304,8 @@ def fixCertifiedUser():
         try:
             db.session.commit()
         except:
-            db.session.rollback()
+            pass
+            # db.session.rollback()
 
         db.session.close()
 
@@ -312,14 +318,16 @@ def fixCertifiedUser():
 @main.route('/api/1.0/addAttention', methods=['POST'])
 def addAttention():
     """
-    添加关注
+    添加关注Type = 1 取消关注 Type = 2
     :return:
     """
 
     token = request.json["Token"]
     userId = request.json["UserId"]
     b_FollowersUserId = request.json["FollowersUserId"]
-    if userId is None and b_FollowersUserId is None:
+    type = request.json["Type"]
+
+    if userId is None and b_FollowersUserId is None and type is None:
         return kResponseJosn(code=500, codeString="缺少参数！")
 
     if not kCheckUser(userId=userId, token=token):
@@ -328,48 +336,43 @@ def addAttention():
     if userId == b_FollowersUserId:
         return kResponseJosn(code=500, codeString="自己不能关注自己！")
 
-    attModel = AttebtonModel()
-    attModel.FollowersUserId = userId
-    attModel.B_FollowersUserId = b_FollowersUserId
-    attModel.FollowersTime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    if type == "1":
 
-    db.session.add(attModel)
-    try:
-        db.session.commit()
-    except:
-        db.session.rollback()
-    db.session.close()
-    return kResponseJosn(code=200, codeString="关注成功！")
+        find_attebon = db.session.query(AttebtonModel).filter_by(FollowersUserId=userId,
+                                                                 B_FollowersUserId=b_FollowersUserId).first()
+        if find_attebon:
+            return kResponseJosn(code=500, codeString="已经关注，请不要重复关注")
 
+        attModel = AttebtonModel()
+        attModel.FollowersUserId = userId
+        attModel.B_FollowersUserId = b_FollowersUserId
+        attModel.FollowersTime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        db.session.add(attModel)
+        try:
+            db.session.commit()
+        except:
+            pass
+            # db.session.rollback()
+        db.session.close()
 
-@main.route('/api/1.0/deleteAttention', methods=['POST'])
-def deleteAttention():
-    """
-    取消关注
-    :return:
-    """
+        return kResponseJosn(code=200, codeString="关注成功！")
 
-    token = request.json["Token"]
-    userId = request.json["UserId"]
-    b_FollowersUserId = request.json["FollowersUserId"]
+    else:
 
-    if userId is None and b_FollowersUserId is None:
-        return kResponseJosn(code=500, codeString="缺少参数！")
+        find_attebon = db.session.query(AttebtonModel).filter_by(FollowersUserId=userId,
+                                                                 B_FollowersUserId=b_FollowersUserId).first()
+        if not find_attebon:
+            return kResponseJosn(code=500, codeString="查询失败！")
 
-    if not kCheckUser(userId=userId, token=token):
-        return kResponseJosn(code=400, codeString="token 无效")
+        db.session.delete(find_attebon)
+        try:
+            db.session.commit()
+        except:
+            pass
+            # db.session.rollback()
+        db.session.close()
 
-    find_attebon = db.session.query(AttebtonModel).filter_by(FollowersUserId=userId, B_FollowersUserId=b_FollowersUserId).first()
-    if not find_attebon:
-        return kResponseJosn(code=500, codeString="查询失败！")
-
-    db.session.delete(find_attebon)
-    try:
-        db.session.commit()
-    except:
-        db.session.rollback()
-    db.session.close()
-    return kResponseJosn(code=200, codeString="取消关注成功！")
+        return kResponseJosn(code=200, codeString="取消关注成功！")
 
 
 @main.route('/api/1.0/getMyAttention', methods=['POST'])
@@ -380,21 +383,31 @@ def getMyAttention():
     """
     token = request.json["Token"]
     userId = request.json["UserId"]
-    page = request.json.get('page')
-    pageSize = request.json.get('pageSize')
+    page = request.json.get('Page')
+    pageSize = request.json.get('PageSize')
 
     if not kCheckUser(userId=userId, token=token):
         return kResponseJosn(code=500, codeString="token 无效！")
 
     pagination = AttebtonModel.query \
         .filter_by(FollowersUserId=userId) \
-        .order_by(AttebtonModel.ReleaseTime.desc()) \
+        .order_by(AttebtonModel.FollowersTime.desc()) \
         .paginate(int(page), per_page=int(pageSize), error_out=False)
 
     posts = pagination.items
     tList = []
     for t in posts:
-        obj = classTodic(t)
+
+        find_my_user = db.session.query(UserDetailModel).filter_by(UserId=t.B_FollowersUserId).first()
+
+        obj = {
+            "FollowersTime": t.FollowersTime,
+            "Name": find_my_user.Name,
+            "HeaderUrl": find_my_user.UserImageUrl,
+            "UserId": find_my_user.UserId
+        }
+
+        # obj = classTodic(t)
         tList.append(obj)
 
     return kResponseJosn(code=200, codeString="查询成功！", obj=tList)
